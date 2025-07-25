@@ -94,5 +94,5 @@ Contribuições são bem-vindas! Se você tem sugestões de melhorias ou deseja 
 
 ## 📫 Contacto
 
-Para dúvidas, parcerias ou suporte técnico, entre em contacto com a equipa através do email: **\[[exemplo@dominio.ao](mailto:geral@pachecobarroso.com)]**
+Para dúvidas, parcerias ou suporte técnico, entre em contacto com a equipa através do email: **\[[geral@pachecobarroso.com](mailto:geral@pachecobarroso.com)]**
 
