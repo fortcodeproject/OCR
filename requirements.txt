@@ -1,0 +1,10 @@
+fastapi
+numpy
+pandas
+uvicorn
+pillow
+pymupdf
+easyocr
+opencv-python-headless
+torch
+torchvision
