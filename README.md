@@ -96,6 +96,3 @@ Contribuições são bem-vindas! Se você tem sugestões de melhorias ou deseja 
 
 Para dúvidas, parcerias ou suporte técnico, entre em contacto com a equipa através do email: **\[[exemplo@dominio.ao](mailto:geral@pachecobarroso.com)]**
 
----
-
-Se quiser, posso também gerar o `README.md` com a formatação em Markdown já pronta para usar no GitHub. Deseja isso?
