@@ -5,13 +5,13 @@ from playwright.async_api import async_playwright, TimeoutError
 import os
 
 # URL da sua API FastAPI e da plataforma web
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL =  "http://127.0.0.1:8000"
 LOGIN_URL = "https://fortcodedev.com/login"
 FORM_URL = "https://fortcodedev.com/custos"
 
 # CREDENCIAIS DE LOGIN (substitua pelas suas)
-USER_EMAIL = os.getenv("USER_EMAIL", "geral@gmail.com")
-USER_PASSWORD = os.getenv("USER_PASSWORD", "geral@gmail.com")
+USER_EMAIL = "geral@gmail.com"
+USER_PASSWORD = "geral@gmail.com"
 
 async def perform_login(page):
     """Realiza o login na plataforma web."""
