@@ -6,7 +6,7 @@ import easyocr
 
 app = FastAPI()
 
-# Inicializa o leitor do EasyOCR uma vez
+# Inicializa o leitor do EasyOCR uma vez     
 reader = easyocr.Reader(['pt'], gpu=False)
 
 def preprocess_image(image: Image.Image) -> Image.Image:
