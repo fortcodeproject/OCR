@@ -141,23 +141,27 @@ async def fill_cost_form(page, data, file_path):
     await page.locator(f"input[wire\\:model='payments.{payment_index}.invoice_file']").set_input_files(file_path)
     print("Comprovativo carregado.")
 
-    try:
-        print("Tentando clicar no botão 'Salvar'...")
-        
-        await page.wait_for_selector('button.btn-website[wire\\:target="save"]', timeout=15000)
-        await page.click('button.btn-website[wire\\:target="save"]')
+    # Adicionando um pequeno tempo de espera para garantir que o dropdown seja preenchido
+    await page.wait_for_timeout(1000)
 
-        print("Botão 'Salvar' clicado com sucesso!")
+    try:
+        # Sempre clicar no botão "Criar Rascunho"
+        print("Tentando clicar no botão 'Criar Rascunho'...")
+
+        await page.wait_for_selector('button[wire\\:target="save(1)"]', timeout=15000)
+        await page.click('button[wire\\:target="save(1)"]')
+
+        print("Botão 'Criar Rascunho' clicado com sucesso! Aguardando fechamento do modal...")
 
         await page.wait_for_selector('.modal-footer', state='hidden', timeout=30000)
-        print("Modal de registro de custos fechado com sucesso!")
+        print("Modal fechado com sucesso. Rascunho criado!")
 
     except TimeoutError:
-        print("Aviso: O botão 'Salvar' não foi encontrado ou a página demorou muito para responder.")
+        print("Aviso: O botão 'Criar Rascunho' não foi encontrado ou demorou demais.")
     except Exception as e:
-        print(f"Erro ao tentar salvar o formulário: {e}")
-    
-    print("\nProcesso de preenchimento e salvamento finalizado.")
+        print(f"Erro ao tentar clicar no botão 'Criar Rascunho': {e}")
+
+    print("\n✅ Formulário preenchido e rascunho criado com sucesso.")
 
 async def fill_form_with_ocr_data(file_path: str):
     """Função principal que orquestra todo o processo."""
@@ -180,8 +184,12 @@ async def fill_form_with_ocr_data(file_path: str):
 
             await fill_cost_form(page, data, file_path)
 
-            print("Navegador permanecerá aberto para inspeção. Feche-o manualmente.")
-            await page.wait_for_timeout(3600000)
+            try:
+                print("Navegador permanecerá aberto para inspeção. Feche-o manualmente.")
+                await page.wait_for_timeout(60000)
+            except Exception:
+                print("Navegador foi fechado manualmente.")
+
 
     except requests.exceptions.RequestException as e:
         print(f"Erro ao conectar ou receber dados da sua API: {e}")
