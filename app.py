@@ -9,7 +9,7 @@ import numpy as np
 import pytesseract
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Query
 from pydantic import BaseModel
 from typing import Optional, List, Tuple, Dict, Any
 
@@ -122,7 +122,7 @@ def to_float(num_str: str) -> float:
         # Só ponto => já decimal
     try:
         return float(s)
-    except:
+    except ValueError:
         return 0.0
 
 def find_number_after_label(text: str, labels: List[str]) -> Optional[float]:
@@ -192,7 +192,7 @@ def extract_text_from_pdf_stream(file_bytes: bytes) -> str:
             for fut in as_completed(futures):
                 ocr_results.append(fut.result())
 
-    all_results = {i: limpar_texto(t) for i, t in candidates_embedded}
+    all_results = {i: limpar_texto(t) for i in candidates_embedded}
     for i, t in ocr_results:
         all_results[i] = limpar_texto(t)
 
@@ -305,10 +305,8 @@ TEXTO:
 """.strip()
 
 def run_llm_structured_extraction(extracted_text: str) -> Dict[str, Any]:
-    # === INÍCIO DA ALTERAÇÃO 1: CHAMADA À NOVA FUNÇÃO DE PRÉ-PROCESSAMENTO ===
     processed_text = limpar_e_ajustar_texto_para_llm(extracted_text)
     text_for_llm = processed_text if len(processed_text) <= MAX_CHARS_TO_LLM else processed_text[:MAX_CHARS_TO_LLM]
-    # === FIM DA ALTERAÇÃO 1 ===
 
     prompt = build_prompt_for_llm(text_for_llm)
     response = llm.invoke(prompt)
@@ -332,7 +330,7 @@ def run_llm_structured_extraction(extracted_text: str) -> Dict[str, Any]:
 # =========================
 # Pós-processamento (fixes)
 # =========================
-# helpers adicionais (adicione próximo às outras helpers)
+# helpers adicionais
 def safe_float(x: Any, default: float = 0.0) -> float:
     """
     Converte vários tipos (str com vírgula/ponto, int, float, None) para float.
@@ -364,7 +362,6 @@ def first_present(d: Dict[str, Any], keys: List[str], default=None):
     return default
 
 
-# Substituir a tua função validar_e_corrigir_dados por esta:
 def validar_e_corrigir_dados(data: Dict[str, Any], texto_ocr: str) -> Dict[str, Any]:
     """
     Pós-processamento robusto e heurístico para:
@@ -433,6 +430,7 @@ def validar_e_corrigir_dados(data: Dict[str, Any], texto_ocr: str) -> Dict[str, 
                     # pode ser que preco_unit_f já inclua IVA (ou não). Vamos checar com taxa_f:
                     if taxa_f and taxa_f > 0:
                         # Se preco_unit_f inclui IVA, então valor sem IVA = preco_unit_f / (1 + taxa/100)
+                        # NOTA: Corrigi aqui para usar 'preco_unit_f' em vez de 'u_incl'
                         unit_sem_iva = round(preco_unit_f / (1.0 + taxa_f / 100.0), 2)
                         # recomputar
                         preco_unit_f = unit_sem_iva
@@ -567,10 +565,19 @@ def validar_e_corrigir_dados(data: Dict[str, Any], texto_ocr: str) -> Dict[str, 
 # Endpoint
 # =========================
 @app.post("/ocr")
-async def ocr_and_structured_extract(file: UploadFile = File(...)):
+async def ocr_and_structured_extract(
+    file: UploadFile = File(...),
+    # AQUI ESTÁ A MUDANÇA: company_id agora é do tipo 'int'
+    company_id: int = Query(..., description="ID único da empresa para a qual o documento está a ser processado (número inteiro)."),
+):
+    print(f"Recebida requisição para company_id: {company_id} (tipo: {type(company_id)})")
+
     fname = (file.filename or "").lower()
     if not fname.endswith((".pdf", ".png", ".jpg", ".jpeg")):
         raise HTTPException(status_code=400, detail="Formato de arquivo não suportado. Envie PDF/PNG/JPG.")
+
+    # A validação do company_id agora é tratada automaticamente pelo Pydantic/FastAPI
+    # Se o valor não puder ser convertido para int, um erro 422 será retornado.
 
     try:
         data_bytes = await file.read()
@@ -588,7 +595,9 @@ async def ocr_and_structured_extract(file: UploadFile = File(...)):
         extracted_data = run_llm_structured_extraction(extracted_text)
         extracted_data = validar_e_corrigir_dados(extracted_data, extracted_text)
 
+        # Retornar o company_id no resultado para confirmação
         return {
+            "company_id": company_id, # O company_id aqui já será um int
             "extracted_text": extracted_text,
             "extracted_data": extracted_data
         }
@@ -596,4 +605,5 @@ async def ocr_and_structured_extract(file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"Erro no processamento para company_id {company_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro no processamento: {str(e)}")

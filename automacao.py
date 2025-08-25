@@ -50,6 +50,17 @@ async def fill_cost_form(page, data, file_path):
     await page.wait_for_selector('input[name="invoice_number"]', state='visible', timeout=30000)
     print("Formulário de registro encontrado! Iniciando preenchimento...")
 
+    # --- NOVO: Adição para preencher o company_id no formulário web ---
+    if data.get('company_id') is not None: # Verifica se o company_id existe nos dados extraídos
+        try:
+            # Assumindo que o campo na web tem o nome 'company_id' ou um seletor similar
+            await page.fill('input[name="company_id"]', str(data['company_id']))
+            print(f"Company ID preenchido: {data['company_id']}")
+        except Exception as e:
+            print(f"Aviso: Não foi possível preencher o campo 'company_id' no formulário web. Erro: {e}")
+            # Podes querer parar o processo aqui ou continuar dependendo da criticidade.
+    # --- FIM DA ADIÇÃO ---
+
     # Preenchimento dos campos do modal
     if data.get('invoice_number'):
         await page.fill('input[name="invoice_number"]', data['invoice_number'])
@@ -72,8 +83,8 @@ async def fill_cost_form(page, data, file_path):
         except TimeoutError:
             print(f"Erro: Não foi possível selecionar o fornecedor '{data['supplier_name']}'. Verifique se ele já existe na sua base de dados com o nome exato.")
             # Continua o script mesmo se o fornecedor não for encontrado
-# ... (código anterior)
 
+    # ... (restante do seu código para preencher itens e pagamento)
     # Evita execução duplicada
     if not hasattr(globals(), "_execucao_itens_realizada"):
         globals()["_execucao_itens_realizada"] = False
@@ -273,15 +284,17 @@ async def run_automation(data, file_path: str):
     browser = None
     try:
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=False, slow_mo=500)
+            # Para produção, 'headless=True' é normalmente preferível para economizar recursos.
+            # No entanto, se precisar de depurar, pode temporariamente definir como 'headless=False'.
+            browser = await p.chromium.launch(headless=True, slow_mo=500)
             page = await browser.new_page()
             
             await perform_login(page)
             await fill_cost_form(page, data, file_path)
 
-            # Aguarda 20 minutos antes de fechar o navegador
-            print("⏳ Esperando 20 minutos antes de fechar o navegador...")
-            await asyncio.sleep(20 * 60)  # 20 minutos
+            # Remover o sleep de 20 minutos em produção se não for necessário
+            # print("⏳ Esperando 20 minutos antes de fechar o navegador...")
+            # await asyncio.sleep(20 * 60)
 
     except Exception as e:
         print(f"Ocorreu um erro no script de automação: {e}")
