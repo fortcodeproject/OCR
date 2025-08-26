@@ -568,7 +568,6 @@ def validar_e_corrigir_dados(data: Dict[str, Any], texto_ocr: str) -> Dict[str, 
 @app.post("/ocr")
 async def ocr_and_structured_extract(
     file: UploadFile = File(...),
-    # AQUI ESTÁ A MUDANÇA: company_id agora é do tipo 'int'
     company_id: int = Query(..., description="ID único da empresa para a qual o documento está a ser processado (número inteiro)."),
 ):
     print(f"Recebida requisição para company_id: {company_id} (tipo: {type(company_id)})")
@@ -576,9 +575,6 @@ async def ocr_and_structured_extract(
     fname = (file.filename or "").lower()
     if not fname.endswith((".pdf", ".png", ".jpg", ".jpeg")):
         raise HTTPException(status_code=400, detail="Formato de arquivo não suportado. Envie PDF/PNG/JPG.")
-
-    # A validação do company_id agora é tratada automaticamente pelo Pydantic/FastAPI
-    # Se o valor não puder ser convertido para int, um erro 422 será retornado.
 
     try:
         data_bytes = await file.read()
@@ -608,9 +604,16 @@ async def ocr_and_structured_extract(
             
         extracted_data_str = json.dumps(extracted_data)
         
-        # Dispara o script de automação sem bloquear a API
-        subprocess.Popen(["python", "automacao.py", file_path, extracted_data_str])
+        # === LÓGICA DE CONDIÇÃO PARA O SISTEMA OPERATIVO ===
+        # Para Windows (nt) usa 'python', para Linux (posix) usa o caminho absoluto
+        if os.name == 'nt':
+            python_executable = "python"
+        else:
+            python_executable = "/usr/local/bin/python"
 
+        # Dispara o script de automação sem bloquear a API
+        subprocess.Popen([python_executable, "automacao.py", file_path, extracted_data_str])
+        
         return {
             "status": "Processamento e automação iniciados com sucesso.",
             "message": "A automação web foi iniciada em segundo plano. Você pode fechar esta tela."
@@ -621,4 +624,3 @@ async def ocr_and_structured_extract(
     except Exception as e:
         print(f"Erro no processamento para company_id {company_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro no processamento: {str(e)}")
-    
