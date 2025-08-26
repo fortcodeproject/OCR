@@ -6,6 +6,7 @@ import unicodedata
 import fitz  # PyMuPDF
 import cv2
 import numpy as np
+import subprocess
 import pytesseract
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
@@ -595,11 +596,24 @@ async def ocr_and_structured_extract(
         extracted_data = run_llm_structured_extraction(extracted_text)
         extracted_data = validar_e_corrigir_dados(extracted_data, extracted_text)
 
-        # Retornar o company_id no resultado para confirmação
+        # 4. Preparação e disparo da automação em segundo plano
+        extracted_data["company_id"] = company_id
+        
+        temp_dir = "temp_uploads"
+        os.makedirs(temp_dir, exist_ok=True)
+        file_path = os.path.join(temp_dir, file.filename)
+        
+        with open(file_path, "wb") as f:
+            f.write(data_bytes)
+            
+        extracted_data_str = json.dumps(extracted_data)
+        
+        # Dispara o script de automação sem bloquear a API
+        subprocess.Popen(["python", "automacao.py", file_path, extracted_data_str])
+
         return {
-            "company_id": company_id, # O company_id aqui já será um int
-            "extracted_text": extracted_text,
-            "extracted_data": extracted_data
+            "status": "Processamento e automação iniciados com sucesso.",
+            "message": "A automação web foi iniciada em segundo plano. Você pode fechar esta tela."
         }
 
     except HTTPException:
@@ -607,3 +621,4 @@ async def ocr_and_structured_extract(
     except Exception as e:
         print(f"Erro no processamento para company_id {company_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erro no processamento: {str(e)}")
+    
