@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import subprocess
 import pytesseract
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Query
@@ -610,7 +611,17 @@ async def ocr_and_structured_extract(
             python_executable = "python"
         else:
             python_executable = "/usr/local/bin/python"
-
+        # === NOVO CÓDIGO PARA CRIAR E REDIRECIONAR OS LOGS ===
+        log_filename = f"automacao_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+        log_file_path = os.path.join(temp_dir, log_filename)
+        
+        with open(log_file_path, "w") as log_file:
+            subprocess.Popen(
+                [python_executable, "automacao.py", file_path, extracted_data_str], 
+                stdout=log_file,
+                stderr=log_file
+            )
+        # === FIM DO NOVO CÓDIGO ===
         # Dispara o script de automação sem bloquear a API
         subprocess.Popen([python_executable, "automacao.py", file_path, extracted_data_str])
         
