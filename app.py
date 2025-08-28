@@ -1,6 +1,8 @@
 import os
 import re
 import io
+import traceback
+import sys
 import json
 import unicodedata
 import fitz  # PyMuPDF
@@ -633,5 +635,15 @@ async def ocr_and_structured_extract(
     except HTTPException:
         raise
     except Exception as e:
+        exc_type, exc_obj, tb = sys.exc_info()
+        linha_erro = tb.tb_lineno
+        arquivo_erro = tb.tb_frame.f_code.co_filename
+        funcao_erro = tb.tb_frame.f_code.co_name
+
         print(f"Erro no processamento para company_id {company_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Erro no processamento: {str(e)}")
+        print(f"Arquivo: {arquivo_erro}, Função: {funcao_erro}, Linha: {linha_erro}")
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro no processamento (linha {linha_erro}): {str(e)}"
+        )

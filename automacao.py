@@ -289,7 +289,7 @@ async def run_automation(data, file_path: str):
             browser = await p.chromium.launch(headless=True, slow_mo=500)
             page = await browser.new_page()
             
-            await perform_login(page)
+            #await perform_login(page)
             await fill_cost_form(page, data, file_path)
 
             # Remover o sleep de 20 minutos em produção se não for necessário
